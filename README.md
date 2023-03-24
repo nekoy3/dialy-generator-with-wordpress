@@ -9,10 +9,8 @@
 適当にどこかのサーバーでconfig.iniに所定事項を記述しbotを稼働させ、discordの該当チャンネル上でwordpressへのログイン処理を行い、正常に動作するかを確認することで稼働できるようになります。  
 ### Library  
 ```pip install discord.py```  
-```pip install python-wordpress-xmlrpc```  
 (version)  
 discord.py v2.0.0  
-python-wordpress-xmlrpc v2.3  
   
 # Usage  
 実装後記述  
