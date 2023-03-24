@@ -1,4 +1,3 @@
-from start import MyBot
 from configIO import ConfigClass
 from connectWP import WpClass
 from discordBot import BotClient
