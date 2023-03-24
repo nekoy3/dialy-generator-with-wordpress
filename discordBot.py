@@ -5,7 +5,8 @@ from discord import app_commands
 #キーワード引数
 #javadrive.jp/python/userfunc/index6.html
 class BotClient(discord.Client):
-    def __init__(self, guild_id, channel_id, wp_client, *, intents: discord.Intents):
+    def __init__(self, guild_id, channel_id, wp_client):
+        intents = discord.Intents.all()
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self) #全てのコマンドを管理するCommandTree型オブジェクトを生成
         self.guild_id = guild_id
