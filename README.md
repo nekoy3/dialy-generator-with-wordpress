@@ -10,6 +10,9 @@
 ### Library  
 ```pip install discord.py```  
 ```pip install python-wordpress-xmlrpc```  
+(version)  
+discord.py v2.0.0  
+python-wordpress-xmlrpc v2.3  
   
 # Usage  
 実装後記述  
