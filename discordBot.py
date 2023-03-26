@@ -21,13 +21,17 @@ class DiscordController(discord.Client):
         await c.send(embed=embed)
 
 
-#時間がかかる処理を行うメソッドをすべてこのクラスに格納する
+#別タスクとして投げられるメソッドをすべてこのクラスに格納する
 class AsynchronousMethods:
     async def write_diary(self):
         await self.sub_obj.send_message("Please enter a title.")
         while True:
-            await asyncio.sleep(0.2)
+            #メッセージが添付ファイルを受け取ったらそれを返す
+            #また、途中で終了処理やその他割りこみがあったら処理する。
+            #writing=Trueで記事記述中(undoを受け付ける)
+            msg, file = await self.sub_obj.interrupt_msg_sleep()
             break
+        #メッセージが入ったらsub
 
 
 #キーワード引数
@@ -41,6 +45,9 @@ class BotClient(DiscordController):
         self.channel_id = channel_id
         self.wp_client = wp_client
         self.async_methods = AsynchronousMethods()
+        #メッセージを取得したら保持する
+        self.got_msg = ""
+        self.attachment_list = []
 
         #sub_objについて
         #sub_objはこのクラス自身を保持しており、AsynchronousMethosクラスのインスタンスが保持している。
@@ -56,7 +63,40 @@ class BotClient(DiscordController):
         guild=discord.Object(id=self.guild_id)
         self.tree.copy_global_to(guild=guild)
         await self.tree.sync(guild=guild)
-    
+
+    async def on_message(self, message):
+        #botと対象チャンネル以外をはじく
+        if message.author.bot or message.channel.id != self.channel_id:
+            return
+        self.got_msg=message.content if message.content != "" else "empty"
+
+        """画像ファイルの処理について
+        〇URLを直でブログに貼るか、サーバー上に一時的に保存し添付するか
+        決めなければならない
+        for attachment in message.attachments:
+            if attachment.content_type.startswith('image/'):
+                # 画像ファイルを保存する
+                await attachment.save(attachment.filename)
+                print(f'{attachment.filename}を保存しました')
+        """
+        
+    #メッセージが添付ファイルを受け取ったらそれを返す
+    #割りこみを受け取ったら処理する。writingは記事記述中でundoを受け付ける
+    async def interrupt_msg_sleep(self, writing=False):
+        await asyncio.sleep(0.2)
+        #割りこみ処理はここ
+        if self.got_msg != "":
+            pass
+
+        #ここにメッセージorファイルを受け取ったとき結果を返す
+        if self.got_msg != "" or self.attachments_list != []:
+            tmp = [self.got_msg, self.attachments_list]
+            self.got_msg = ""
+            self.attachment_list = []
+            return tmp
+        else:
+            return "", []
+
     def make_embed(self, title, description, color=0x000000):
         embed = discord.Embed(title=title,description=description,color=color)
         return embed
