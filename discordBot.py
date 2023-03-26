@@ -24,12 +24,15 @@ class DiscordController(discord.Client):
 #時間がかかる処理を行うメソッドをすべてこのクラスに格納する
 class AsynchronousMethods:
     async def write_diary(self):
-        await asyncio.sleep(2)
-        await self.sub_obj.send_message("Yes")
+        await self.sub_obj.send_message("Please enter a title.")
+        while True:
+            await asyncio.sleep(0.2)
+            break
+
 
 #キーワード引数
 #javadrive.jp/python/userfunc/index6.html
-class BotClient(DiscordController, AsynchronousMethods):
+class BotClient(DiscordController):
     def __init__(self, guild_id, channel_id, wp_client):
         intents = discord.Intents.all()
         super().__init__(intents=intents)
@@ -38,6 +41,9 @@ class BotClient(DiscordController, AsynchronousMethods):
         self.channel_id = channel_id
         self.wp_client = wp_client
         self.async_methods = AsynchronousMethods()
+
+        #sub_objについて
+        #sub_objはこのクラス自身を保持しており、
         self.async_methods.sub_obj = self
 
         #デコレータを直接付与すると、コンストラクタ実行前に実行されnot definedになるためあと付けデコレータする
