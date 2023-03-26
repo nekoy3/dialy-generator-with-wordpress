@@ -1,4 +1,3 @@
-import json
 import discord
 from discord import app_commands
 import asyncio
@@ -25,15 +24,15 @@ class DiscordController(discord.Client):
 #時間がかかる処理を行うメソッドをすべてこのクラスに格納する
 class AsynchronousMethods:
     def __init__(self):
-        self.sub_obj = self.get_subclass_object()   # サブクラスのインスタンスを取得
+        pass
     
     async def write_diary(self):
         await asyncio.sleep(2)
-        await self.send_message("Yes")
+        await self.sub_obj.send_message("Yes")
 
     #DiscordControllerにアクセスするためのメソッド
     def get_subclass_object(self):
-        return self
+        return self.sub_obj
 
 #キーワード引数
 #javadrive.jp/python/userfunc/index6.html
@@ -45,7 +44,8 @@ class BotClient(DiscordController, AsynchronousMethods):
         self.guild_id = guild_id
         self.channel_id = channel_id
         self.wp_client = wp_client
-        self.async_methods = AsynchronousMethods
+        self.async_methods = AsynchronousMethods()
+        self.async_methods.sub_obj = self
 
         #デコレータを直接付与すると、コンストラクタ実行前に実行されnot definedになるためあと付けデコレータする
         self.make_diary = self.tree.command(name="write_diary", description="日記の記述を開始します。")(self.make_diary)
@@ -68,7 +68,5 @@ class BotClient(DiscordController, AsynchronousMethods):
         """
     
     async def make_diary(self, interaction):
-        #コルーチン関数を非同期タスクで実行するにはawaitせずコルーチンオブジェクトとして受け取りタスクとして投げる
-        coro_obj=self.async_methods.write_diary(self)
-        asyncio.create_task(coro_obj)
+        asyncio.create_task(self.async_methods.write_diary())
         await interaction.response.send_message("done")
