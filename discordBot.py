@@ -23,16 +23,9 @@ class DiscordController(discord.Client):
 
 #時間がかかる処理を行うメソッドをすべてこのクラスに格納する
 class AsynchronousMethods:
-    def __init__(self):
-        pass
-    
     async def write_diary(self):
         await asyncio.sleep(2)
         await self.sub_obj.send_message("Yes")
-
-    #DiscordControllerにアクセスするためのメソッド
-    def get_subclass_object(self):
-        return self.sub_obj
 
 #キーワード引数
 #javadrive.jp/python/userfunc/index6.html
