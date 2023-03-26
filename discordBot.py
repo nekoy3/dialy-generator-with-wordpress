@@ -43,7 +43,10 @@ class BotClient(DiscordController):
         self.async_methods = AsynchronousMethods()
 
         #sub_objについて
-        #sub_objはこのクラス自身を保持しており、
+        #sub_objはこのクラス自身を保持しており、AsynchronousMethosクラスのインスタンスが保持している。
+        #このインスタンスであるasync_methodsがこのBotClientクラスが持つメソッド(継承含む、send_messageメソッドなど)
+        #にアクセスできるようにするためにはasync_methodsｵﾌﾞｼﾞｪｸﾄ自身がこのサブクラス自体を保持する必要がある
+        #これ絶対正攻法じゃないよね
         self.async_methods.sub_obj = self
 
         #デコレータを直接付与すると、コンストラクタ実行前に実行されnot definedになるためあと付けデコレータする
