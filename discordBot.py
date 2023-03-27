@@ -24,7 +24,7 @@ class DiscordController(discord.Client):
 
 #別タスクとして投げられるメソッドをすべてこのクラスに格納する
 class AsynchronousMethods:
-    def get_last_processed(self, d):
+    def set_last_processed(self, d):
         self.last_processed_datadict = d
 
     async def read_text_loop(self, prompt, max_length):
@@ -72,7 +72,7 @@ class AsynchronousMethods:
         title_prompt = "Please enter a title."
         title = await self.read_text_loop(title_prompt, 32)
         if title == -1:
-            self.get_last_processed(input_datadict)
+            self.set_last_processed(input_datadict)
             return
         input_datadict["title"] = title
 
@@ -80,7 +80,7 @@ class AsynchronousMethods:
         slug_prompt = "Please enter a slug.\n「diary」と入力すると自動で今日の日時[diary-yyyy-mm-dd]となります。"
         slug = await self.read_text_loop(slug_prompt, 200)
         if slug == -1:
-            self.get_last_processed(input_datadict)
+            self.set_last_processed(input_datadict)
             return
         if slug == "diary":
             slug = datetime.today().strftime("%Y-%m-%d")
@@ -88,7 +88,7 @@ class AsynchronousMethods:
         input_datadict["slug"] = slug
         
         #本文入力
-        
+        #embedで各種操作例を表記して入力を開始してもらう。
 
 #キーワード引数
 #javadrive.jp/python/userfunc/index6.html
