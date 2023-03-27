@@ -27,7 +27,7 @@ class AsynchronousMethods:
     def get_last_processed(self, d):
         self.last_processed_datadict = d
 
-    async def read_text_loop(self, prompt, validator):
+    async def read_text_loop(self, prompt, max_length):
         await self.sub_obj.send_message(prompt)
         while True:
             # メッセージ応答を待機し、メッセージ、添付ファイル、強制終了フラグを返す。
@@ -45,14 +45,21 @@ class AsynchronousMethods:
                 break
 
             #validatorはラムダ式
-            #lambda x: True if len(x) <= 文字数 else False
+            #lambda x, y: True if len(x) <= y else False
             #という式を保持している。
-            #1, 引数(msg)をlambda xのxとして受け取る。
-            #2, 条件式評価し、Trueならifより前の値を返す。elseならFalseを返す。
-            if validator(msg):
+            #1, 引数(msg)をlambda xのxとして受け取る。 max_lengthがy。
+            #2, 条件式評価し、条件適合（今回は文字数が指定以下）ならそのまま受け取る。
+            #Falseであれば再入力を求める。
+            if self.validator(msg, max_length):
                 return msg
+            else:
+                await self.sub_obj.send_message(f"{str(max_length)}文字以内で再度入力してください。")
+                continue
 
     async def write_diary(self):
+        #validator(評価文字列, 文字数)
+        self.validator = lambda x, y: True if len(x) <= y else False
+
         self.last_processed_datadict = {}
         input_datadict = {
             'title': "",  # <32
@@ -63,8 +70,7 @@ class AsynchronousMethods:
 
         # タイトル入力
         title_prompt = "Please enter a title."
-        title_validator = lambda x: True if len(x) <= 32 else False
-        title = await self.read_text_loop(title_prompt, title_validator)
+        title = await self.read_text_loop(title_prompt, 32)
         if title == -1:
             self.get_last_processed(input_datadict)
             return
@@ -72,8 +78,7 @@ class AsynchronousMethods:
 
         # スラッグ入力
         slug_prompt = "Please enter a slug.\n「diary」と入力すると自動で今日の日時[diary-yyyy-mm-dd]となります。"
-        slug_validator = lambda x: True if len(x) <= 200 else False
-        slug = await self.read_text_loop(slug_prompt, slug_validator)
+        slug = await self.read_text_loop(slug_prompt, 200)
         if slug == -1:
             self.get_last_processed(input_datadict)
             return
