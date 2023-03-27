@@ -1,6 +1,8 @@
 import json
 import requests
 
+#https://yaspage.com/yasunolog/wordpress-python-post-test/
+
 class WpClass:
     def __init__(self, url, user, password):
         self.post_api_url = f'{url}/wp-json/wp/v2/posts'

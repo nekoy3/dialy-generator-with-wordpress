@@ -24,13 +24,21 @@ class DiscordController(discord.Client):
 #別タスクとして投げられるメソッドをすべてこのクラスに格納する
 class AsynchronousMethods:
     async def write_diary(self):
+        kill_switch = False
+        title = ""
+        slug = ""
+        content = ""
+
+        #タイトル入力
         await self.sub_obj.send_message("Please enter a title.")
         while True:
-            #メッセージが添付ファイルを受け取ったらそれを返す
-            #また、途中で終了処理やその他割りこみがあったら処理する。
-            #writing=Trueで記事記述中(undoを受け付ける)
-            msg, file = await self.sub_obj.interrupt_msg_sleep()
-            break
+            #メッセージ応答を待機し、メッセージ、添付ファイル、強制終了フラグを返す。
+            msg, _, kill_switch = await self.sub_obj.interrupt_msg_sleep()
+            if kill_switch: 
+                return
+            if msg != "":
+
+            
         #メッセージが入ったらsub
 
 
@@ -83,19 +91,26 @@ class BotClient(DiscordController):
     #メッセージが添付ファイルを受け取ったらそれを返す
     #割りこみを受け取ったら処理する。writingは記事記述中でundoを受け付ける
     async def interrupt_msg_sleep(self, writing=False):
+        msg = self.got_msg
         await asyncio.sleep(0.2)
-        #割りこみ処理はここ
-        if self.got_msg != "":
-            pass
+
+        #割りこみ:強制終了
+        if msg.startswith("write_exit"):
+            await self.send_message("記述を中断しました。最後に終了した記述は「/resume」で再開できます。")
+            return "", [], True
+        
+        #割りこみ:記事記述中の1行戻る・終了シグナル
+        if writing and (msg.startswith("undo") or msg.startswith("end")):
+            return msg, [], False
 
         #ここにメッセージorファイルを受け取ったとき結果を返す
         if self.got_msg != "" or self.attachments_list != []:
-            tmp = [self.got_msg, self.attachments_list]
+            tmp = [self.got_msg, self.attachments_list, False]
             self.got_msg = ""
             self.attachment_list = []
             return tmp
         else:
-            return "", []
+            return "", [], False
 
     def make_embed(self, title, description, color=0x000000):
         embed = discord.Embed(title=title,description=description,color=color)
