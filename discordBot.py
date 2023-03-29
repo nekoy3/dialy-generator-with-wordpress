@@ -89,6 +89,18 @@ class AsynchronousMethods:
         
         #本文入力
         #embedで各種操作例を表記して入力を開始してもらう。
+        embed_text = f"""
+            記事は送信ごとに1段落<p>として認識されます。\n
+            終始<>であればpタグは省略されます。(回避には開始に\を入れてください。)\n
+            一行削除する場合...「undo」\n
+            入力を終了する場合...「end」\n
+            入力内容確認...「confirm」\n
+            行削除...「remove [行番号]or[行番号]-[行番号]」\n
+            行追加...「insert [行番号]
+            """
+        e = self.sub_obj.make_embed("記事の記述", embed_text)
+        await self.sub_obj.send_embed(e)
+
 
 #キーワード引数
 #javadrive.jp/python/userfunc/index6.html
