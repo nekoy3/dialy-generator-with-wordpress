@@ -56,3 +56,9 @@ discord.py v2.0.0
 参考 https://tkstock.site/2022/01/23/python-wordpress-api-category-list-name-slug/  
 /write_blog の時カテゴリ入力を求めるのでid一覧をembedで表示する。  
 入力したらembedは削除する。  
+
+### 日記記述  
+日記は最低限の記述しか出来ない。（段落と画像、一部の装飾）。  
+ヘッダータグ等は気が向いたら/write_blogで実装するかもしれない。  
+ヘッダータグ等を実装できたとてDiscord上でプレビューできないので、プレビューリンクでも貼るか？とか  
+今のところなんとなくで考えてる  
