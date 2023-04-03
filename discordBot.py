@@ -27,22 +27,13 @@ class AsynchronousMethods:
     def set_last_processed(self, d):
         self.last_processed_datadict = d
 
-    async def read_text_loop(self, prompt, max_length):
+    async def read_text_loop(self, prompt, max_length=2000):
         await self.sub_obj.send_message(prompt)
         while True:
             # メッセージ応答を待機し、メッセージ、添付ファイル、強制終了フラグを返す。
-            msg, _, kill_switch = await self.sub_obj.interrupt_msg_sleep()
+            msg, file_list, kill_switch = await self.sub_obj.interrupt_msg_sleep()
             if kill_switch:
                 return -1
-            
-            # if not "" (空文字列)はTrueと評価される。
-            if not msg:
-                continue
-
-            #passされたときは空のまま何もしない
-            if msg == "pass":
-                await self.sub_obj.send_message("skipped.")
-                break
 
             #validatorはラムダ式
             #lambda x, y: True if len(x) <= y else False
@@ -51,7 +42,9 @@ class AsynchronousMethods:
             #2, 条件式評価し、条件適合（今回は文字数が指定以下）ならそのまま受け取る。
             #Falseであれば再入力を求める。
             if self.validator(msg, max_length):
-                return msg
+                self.got_msg = msg
+                self.got_files = file_list
+                return 0
             else:
                 await self.sub_obj.send_message(f"{str(max_length)}文字以内で再度入力してください。")
                 continue
@@ -68,38 +61,89 @@ class AsynchronousMethods:
             'status': "draft",  # draft=下書き、publish=公開　省略時はdraftになる
         }
 
+        await self.sub_obj.change_presence(activity=discord.Game(name="Writing diary"))
+
         # タイトル入力
         title_prompt = "Please enter a title."
-        title = await self.read_text_loop(title_prompt, 32)
-        if title == -1:
+        is_processed = await self.read_text_loop(title_prompt, 32)
+        if is_processed == -1:
             self.set_last_processed(input_datadict)
             return
-        input_datadict["title"] = title
+        elif self.got_msg == "pass":
+            await self.sub_obj.send_message("最後に記述を求めます。")
+        input_datadict["title"] = self.got_msg
 
         # スラッグ入力
         slug_prompt = "Please enter a slug.\n「diary」と入力すると自動で今日の日時[diary-yyyy-mm-dd]となります。"
-        slug = await self.read_text_loop(slug_prompt, 200)
-        if slug == -1:
+        is_processed = await self.read_text_loop(slug_prompt, 200)
+        if is_processed == -1:
             self.set_last_processed(input_datadict)
             return
-        if slug == "diary":
+        if self.got_msg == "diary":
             slug = datetime.today().strftime("%Y-%m-%d")
             await self.sub_obj.send_message("slug -> " + slug)
+        elif self.got_msg == "pass":
+            await self.sub_obj.send_message("最後に記述を求めます。")
+            slug = self.got_msg
         input_datadict["slug"] = slug
         
         #本文入力
         #embedで各種操作例を表記して入力を開始してもらう。
-        embed_text = f"""
+        embed_text = """
             記事は送信ごとに1段落<p>として認識されます。\n
-            終始<>であればpタグは省略されます。(回避には開始に\を入れてください。)\n
+            終始<>であればpタグは省略されます。(回避には開始に\\を入れてください。)\n
             一行削除する場合...「undo」\n
             入力を終了する場合...「end」\n
             入力内容確認...「confirm」\n
-            行削除...「remove [行番号]or[行番号]-[行番号]」\n
+            行確認...「view [行番号]」\n
+            行削除...「remove [行番号]」\n
             行追加...「insert [行番号]
             """
-        e = self.sub_obj.make_embed("記事の記述", embed_text)
+        footer_text = """
+            記事を記述中はbotの状態が「記事をプレイ中」になります。
+            """
+        image_url = "https://3.bp.blogspot.com/-dU4ucpJ9yuo/WlGnjcSrBfI/AAAAAAABJcM/1sWHwYehIRYOA53s5ACHQmGBp1klcsBcACLcBGAs/s800/book_nikkichou_diary.png"
+        e = self.sub_obj.make_embed("記事の記述", embed_text, footer=footer_text, image_url=image_url)
         await self.sub_obj.send_embed(e)
+        content_list = []
+
+        while True:
+            n = await self.read_text_loop("", 200)
+            if slug == -1:
+                self.set_last_processed(input_datadict)
+                return
+            
+            match n:
+                case "undo":
+                    r = content_list.pop() if content_list >= 1 else None
+                    await self.sub_obj.send_message(f"undo {len(content_list)+1}line : {r}")
+
+                case "confirm":
+                    await self.sub_obj.send_message("最初の10文字のみ表示します。「view 行番号」で全文表示します。")
+                    v = ""
+                    l = content_list[:299] if len(content_list) > 300 else content_list
+                    for i, line in enumerate(l):
+                        if len(line) > 10: #最大1行20文字と考慮 embedが6000文字まで
+                            v += i + " : " + line[:9] + " ...\n"
+                        else:
+                            v += i + " : " + line + "\n"
+                        
+                    e = self.sub_obj.make_embed("記事内容確認", v)
+                    await self.sub_obj.send_embed(e)
+                    if len(content_list) > 300:
+                        await self.sub_obj.send_message("最初の300行のみ表示しました。")
+                
+                case r'^view':
+                    n_l = n.rstrip().split(' ')
+                    try:
+                        num = int(n_l[1])
+                        await self.sub_obj.send_message(f"{num}line: {content_list[num-1]}")
+                    except ValueError:
+                        await self.sub_obj.send_message("文法が不正です。")
+                    except IndexError:
+                        await self.sub_obj.send_message(f"該当の行が存在しません。現在記述している記事は{len(content_list)}行です。")
+                
+                case _:
 
 
 #キーワード引数
@@ -172,8 +216,26 @@ class BotClient(DiscordController):
         else:
             return "", [], False
 
-    def make_embed(self, title, description, color=0x000000):
+    def make_embed(self, title, description, **kwargs):
+        """
+        kwargs設定
+        color embedの色設定
+        footer footerのテキスト
+        image_url 画像を添付
+        """
+        if "color" in kwargs:
+            color=kwargs["color"]
+        else:
+            color=0x000000
+
         embed = discord.Embed(title=title,description=description,color=color)
+        
+        if "footer" in kwargs:
+            embed.set_footer(text=kwargs["footer"])
+        
+        if "image_url" in kwargs:
+            embed.set_image(url=kwargs["image_url"])
+
         return embed
 
     async def on_ready(self):
@@ -183,7 +245,8 @@ class BotClient(DiscordController):
         e = self.make_embed("投稿テスト", f"投稿が完了しました。\nid: {p['id']}\ntitle: {p['title']['rendered']}\nlink: {p['link']}")
         await self.send_embed(e)
         """
+        await self.change_presence(activity=discord.Game(name="Access ready!"))
     
     async def make_diary(self, interaction):
         asyncio.create_task(self.async_methods.write_diary())
-        await interaction.response.send_message("done")
+        await interaction.response.send_message("done") 
