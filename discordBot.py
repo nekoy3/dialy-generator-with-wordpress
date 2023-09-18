@@ -144,7 +144,8 @@ class AsynchronousMethods:
                         await self.sub_obj.send_message(f"該当の行が存在しません。現在記述している記事は{len(content_list)}行です。")
                 
                 case _:
-
+                    #TODO 記事記述中の処理
+                    content_list.append(n)
 
 #キーワード引数
 #javadrive.jp/python/userfunc/index6.html
@@ -162,7 +163,7 @@ class BotClient(DiscordController):
         self.attachments_list = []
 
         #sub_objについて
-        #sub_objはこのクラス自身を保持しており、AsynchronousMethosクラスのインスタンスが保持している。
+        #sub_objはこのクラス自身を保持しており、AsynchronousMethodsクラスのインスタンスが保持している。
         #このインスタンスであるasync_methodsがこのBotClientクラスが持つメソッド(継承含む、send_messageメソッドなど)
         #にアクセスできるようにするためにはasync_methodsｵﾌﾞｼﾞｪｸﾄ自身がこのサブクラス自体を保持する必要がある
         #これ絶対正攻法じゃないよね
